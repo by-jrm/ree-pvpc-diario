@@ -1,0 +1,55 @@
+name: PVPC oficial para manana
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Dos ejecuciones UTC para cubrir el cambio de hora de Madrid.
+    - cron: "10 19,20 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Comprobar horario local
+        id: ventana
+        env:
+          EVENTO: ${{ github.event_name }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          now = datetime.now(ZoneInfo("Europe/Madrid"))
+          enabled = os.environ["EVENTO"] == "workflow_dispatch" or now.hour >= 21
+          print("Hora en Madrid:", now.isoformat(), "| ejecutar:", enabled)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"ejecutar={'true' if enabled else 'false'}\n")
+          PY
+
+      - name: Obtener codigo del repositorio
+        if: steps.ventana.outputs.ejecutar == 'true'
+        uses: actions/checkout@v4
+
+      - name: Consultar y validar REE
+        if: steps.ventana.outputs.ejecutar == 'true'
+        env:
+          ESIOS_API_TOKEN: ${{ secrets.ESIOS_API_TOKEN }}
+        run: python3 scripts/pvpc_manana.py
+
+      - name: Publicar JSON validado
+        if: steps.ventana.outputs.ejecutar == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/latest.json
+          if git diff --cached --quiet; then
+            echo "Sin cambios que publicar"
+          else
+            git commit -m "Actualizar PVPC oficial del dia siguiente"
+            git push
+          fi
