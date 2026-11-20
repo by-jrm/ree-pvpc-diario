@@ -1,5 +1,5 @@
 
-name: Prueba de conexion ESIOS
+name: Prueba de precios PVPC REE
 
 on:
   workflow_dispatch:
@@ -8,10 +8,10 @@ permissions:
   contents: read
 
 jobs:
-  prueba:
+  consulta:
     runs-on: ubuntu-latest
     steps:
-      - name: Consultar API oficial REE
+      - name: Obtener precios oficiales
         env:
           ESIOS_API_TOKEN: ${{ secrets.ESIOS_API_TOKEN }}
         run: |
@@ -19,13 +19,24 @@ jobs:
           import os
           import json
           import urllib.request
-          import urllib.error
+          import urllib.parse
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
 
-          token = os.environ.get("ESIOS_API_TOKEN")
-          if not token:
-              raise RuntimeError("No se encuentra el secreto")
+          token = os.environ["ESIOS_API_TOKEN"]
+          zona = ZoneInfo("Europe/Madrid")
 
-          url = "https://api.esios.ree.es/indicators/1001"
+          parametros = urllib.parse.urlencode({
+              "start_date": "2026-11-20T00:00:00+01:00",
+              "end_date": "2026-11-20T23:59:59+01:00",
+              "geo_ids[]": 8741
+          })
+
+          url = (
+              "https://api.esios.ree.es/"
+              "indicators/1001?" + parametros
+          )
+
           req = urllib.request.Request(
               url,
               headers={
@@ -34,14 +45,44 @@ jobs:
               }
           )
 
-          try:
-              with urllib.request.urlopen(req, timeout=30) as r:
-                  data = json.load(r)
-                  print("Conexion correcta con REE")
-                  indicador = data.get("indicator", {})
-                  print("Indicador:", indicador.get("name"))
-                  print("ID:", indicador.get("id"))
-          except urllib.error.HTTPError as e:
-              print("Error HTTP:", e.code)
-              raise
+          with urllib.request.urlopen(req, timeout=30) as r:
+              data = json.load(r)
+
+          indicador = data["indicator"]
+          valores = indicador["values"]
+
+          precios = []
+
+          for registro in valores:
+              if registro.get("geo_id") != 8741:
+                  continue
+
+              fecha = datetime.fromisoformat(
+                  registro["datetime"].replace("Z", "+00:00")
+              ).astimezone(zona)
+
+              if fecha.date().isoformat() != "2026-11-20":
+                  continue
+
+              precios.append((fecha, registro["value"]))
+
+          precios.sort(key=lambda x: x[0])
+
+          print("Indicador:", indicador["name"])
+          print("Unidad de origen:", indicador.get("magnitud"))
+          print("Registros peninsulares:", len(precios))
+
+          for fecha, valor in precios:
+              print(
+                  fecha.strftime("%H:%M"),
+                  "| Valor original:",
+                  valor
+              )
+
+          if len(precios) != 24:
+              raise RuntimeError(
+                  "Numero de registros inesperado"
+              )
+
+          print("PRUEBA DE INTEGRIDAD CORRECTA")
           PY
