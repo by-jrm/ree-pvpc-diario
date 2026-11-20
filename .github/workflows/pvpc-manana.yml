@@ -33,7 +33,7 @@ jobs:
 
       - name: Obtener codigo del repositorio
         if: steps.ventana.outputs.ejecutar == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Consultar y validar REE
         if: steps.ventana.outputs.ejecutar == 'true'
