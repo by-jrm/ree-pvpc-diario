@@ -9,7 +9,7 @@
   "fuente": "REE/eSIOS API oficial",
   "url_fuente": "https://www.esios.ree.es/es/pvpc",
   "verificacion": "official_verified",
-  "validado_en": "2026-11-20T20:22:19+01:00",
+  "validado_en": "2026-11-20T21:54:47+01:00",
   "numero_intervalos": 24,
   "unidad": "€/kWh, término de energía sin impuestos",
   "precio_medio_eur_kwh": 0.17562,
