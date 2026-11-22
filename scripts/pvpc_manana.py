@@ -5,7 +5,7 @@ import os
 import sys
 import urllib.parse
 import urllib.request
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from math import isfinite
 from pathlib import Path
@@ -107,21 +107,27 @@ def daily_average(prices):
     return sum(price for _, price in prices) / Decimal(len(prices))
 
 
-def already_published(target):
+def published_on_or_after(target):
     try:
         report = json.loads(OUT.read_text(encoding="utf-8"))
     except (FileNotFoundError, ValueError):
-        return False
+        return None
     if not isinstance(report, dict):
-        return False
+        return None
 
-    start = local_midnight(target).astimezone(timezone.utc)
-    end = local_midnight(target + timedelta(days=1)).astimezone(timezone.utc)
+    try:
+        published = date.fromisoformat(report.get("fecha"))
+    except (TypeError, ValueError):
+        return None
+    if published < target:
+        return None
+
+    start = local_midnight(published).astimezone(timezone.utc)
+    end = local_midnight(published + timedelta(days=1)).astimezone(timezone.utc)
     expected = int((end - start).total_seconds() // 3600)
     hours = report.get("precios_horarios")
-    return (
-        report.get("fecha") == target.isoformat()
-        and report.get("verificacion") == "official_verified"
+    valid = (
+        report.get("verificacion") == "official_verified"
         and report.get("indicador_esios") == INDICATOR_ID
         and report.get("geo_id") == GEO_ID
         and report.get("numero_intervalos") == expected
@@ -134,18 +140,37 @@ def already_published(target):
         and finite_number(report.get("precio_medio_7_dias_eur_kwh"))
         and finite_number(report.get("variacion_porcentual_vs_7_dias"))
     )
+    return published if valid else None
 
 
 def finite_number(value):
     return type(value) in (int, float) and isfinite(value)
 
 
+def target_date(now, schedule=None, created_at=None):
+    if schedule:
+        # Las expresiones del workflow usan listas de horas y minutos fijos.
+        minutes, hours, *_ = schedule.split()
+        created = datetime.fromisoformat(created_at).astimezone(ZONE)
+        slots = [time(int(hour), int(minute))
+                 for hour in hours.split(",") for minute in minutes.split(",")]
+        slot = max((slot for slot in slots if slot <= created.time()), default=None)
+        scheduled_day = created.date()
+        if slot is None:
+            scheduled_day -= timedelta(days=1)
+            slot = max(slots)
+        return scheduled_day + timedelta(days=int(slot >= time(20, 30)))
+
+    local = now.astimezone(ZONE)
+    return local.date() + timedelta(days=int(local.time() >= time(20, 30)))
+
+
 def main():
-    # La ejecución nocturna publica los precios de mañana, hora peninsular.
     now = datetime.now(ZONE)
-    target = now.date() + timedelta(days=1)
-    if already_published(target):
-        print(f"Ya publicado y verificado: {target}. Sin consulta a REE.")
+    target = target_date(now, os.getenv("PVPC_SCHEDULE"), os.getenv("PVPC_RUN_CREATED_AT"))
+    published = published_on_or_after(target)
+    if published is not None:
+        print(f"Objetivo: {target}. Ya publicado y verificado: {published}. Sin consulta a REE.")
         return
 
     token = os.environ.get("ESIOS_API_TOKEN")
