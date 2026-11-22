@@ -7,7 +7,9 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, ROUND_HALF_UP
+from math import isfinite
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from zoneinfo import ZoneInfo
 
 ZONE = ZoneInfo("Europe/Madrid")
@@ -15,6 +17,7 @@ GEO_ID = 8741
 INDICATOR_ID = 1001
 API = f"https://api.esios.ree.es/indicators/{INDICATOR_ID}"
 OUT = Path("data/latest.json")
+HISTORY_DAYS = 7
 FIVE = Decimal("0.00001")
 
 
@@ -100,17 +103,59 @@ def two_hour_choices(prices):
     return chosen
 
 
+def daily_average(prices):
+    return sum(price for _, price in prices) / Decimal(len(prices))
+
+
+def already_published(target):
+    try:
+        report = json.loads(OUT.read_text(encoding="utf-8"))
+    except (FileNotFoundError, ValueError):
+        return False
+    if not isinstance(report, dict):
+        return False
+
+    start = local_midnight(target).astimezone(timezone.utc)
+    end = local_midnight(target + timedelta(days=1)).astimezone(timezone.utc)
+    expected = int((end - start).total_seconds() // 3600)
+    hours = report.get("precios_horarios")
+    return (
+        report.get("fecha") == target.isoformat()
+        and report.get("verificacion") == "official_verified"
+        and report.get("indicador_esios") == INDICATOR_ID
+        and report.get("geo_id") == GEO_ID
+        and report.get("numero_intervalos") == expected
+        and isinstance(hours, list)
+        and len(hours) == expected
+        and all(
+            isinstance(row, dict) and finite_number(row.get("precio_eur_kwh"))
+            for row in hours
+        )
+        and finite_number(report.get("precio_medio_7_dias_eur_kwh"))
+        and finite_number(report.get("variacion_porcentual_vs_7_dias"))
+    )
+
+
+def finite_number(value):
+    return type(value) in (int, float) and isfinite(value)
+
+
 def main():
+    # La ejecución nocturna publica los precios de mañana, hora peninsular.
+    now = datetime.now(ZONE)
+    target = now.date() + timedelta(days=1)
+    if already_published(target):
+        print(f"Ya publicado y verificado: {target}. Sin consulta a REE.")
+        return
+
     token = os.environ.get("ESIOS_API_TOKEN")
     if not token:
         raise RuntimeError("Falta el secreto ESIOS_API_TOKEN")
 
-    # La ejecución nocturna publica los precios de MAÑANA, hora peninsular.
-    now = datetime.now(ZONE)
-    target = now.date() + timedelta(days=1)
     previous = target - timedelta(days=1)
+    first = target - timedelta(days=HISTORY_DAYS)
 
-    indicator = fetch_data(token, previous, target)
+    indicator = fetch_data(token, first, target)
     if int(indicator.get("id", -1)) != INDICATOR_ID:
         raise ValueError("El indicador recibido no es el 1001")
     units = str(indicator.get("magnitud", ""))
@@ -118,16 +163,23 @@ def main():
         raise ValueError(f"Unidad inesperada: {units}")
 
     records = indicator["values"]
-    prev = extract_day(records, previous)
     current = extract_day(records, target)
+    history = [
+        daily_average(extract_day(records, first + timedelta(days=offset)))
+        for offset in range(HISTORY_DAYS)
+    ]
 
-    avg_prev = sum(price for _, price in prev) / Decimal(len(prev))
-    avg = sum(price for _, price in current) / Decimal(len(current))
+    avg_prev = history[-1]
+    avg_week = sum(history) / Decimal(HISTORY_DAYS)
+    avg = daily_average(current)
+    if avg_week == 0:
+        raise ValueError("No se puede calcular una variación con media de siete días cero")
     if avg_prev == 0:
         raise ValueError("No se puede calcular una variación con media previa cero")
     minimum = min(current, key=lambda x: x[1])
     maximum = max(current, key=lambda x: x[1])
     delta = (avg / avg_prev - 1) * 100
+    delta_week = (avg / avg_week - 1) * 100
 
     def hour_range(item):
         start, price = item
@@ -155,6 +207,10 @@ def main():
         "precio_medio_eur_kwh": money(avg),
         "precio_medio_dia_anterior_eur_kwh": money(avg_prev),
         "variacion_porcentual_vs_anterior": float(delta.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)),
+        "precio_medio_7_dias_eur_kwh": money(avg_week),
+        "variacion_porcentual_vs_7_dias": float(
+            delta_week.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        ),
         "minimo": hour_range(minimum),
         "maximo": hour_range(maximum),
         "mejores_tramos_2h_sin_solapamiento": two_hour_choices(current),
@@ -162,11 +218,19 @@ def main():
     }
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    contents = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
+    with NamedTemporaryFile(dir=OUT.parent, delete=False) as output:
+        pending = Path(output.name)
+    try:
+        pending.write_text(contents, encoding="utf-8")
+        pending.replace(OUT)
+    finally:
+        pending.unlink(missing_ok=True)
     print(
         f"VALIDADO: {target} | {len(current)} intervalos | "
         f"media {report['precio_medio_eur_kwh']} €/kWh | "
-        f"comparación {previous} | REE indicador {INDICATOR_ID}"
+        f"media 7 días {report['precio_medio_7_dias_eur_kwh']} €/kWh | "
+        f"variación {report['variacion_porcentual_vs_7_dias']:+.2f}% | REE indicador {INDICATOR_ID}"
     )
     print("Archivo publicado:", OUT)
 
