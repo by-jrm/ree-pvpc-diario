@@ -1,6 +1,6 @@
 {
-  "fecha": "2026-11-23",
-  "fecha_comparacion": "2026-11-22",
+  "fecha": "2026-11-24",
+  "fecha_comparacion": "2026-11-23",
   "zona": "Península",
   "zona_horaria": "Europe/Madrid",
   "tarifa": "PVPC 2.0TD",
@@ -9,161 +9,161 @@
   "fuente": "REE/eSIOS API oficial",
   "url_fuente": "https://www.esios.ree.es/es/pvpc",
   "verificacion": "official_verified",
-  "validado_en": "2026-11-22T21:17:03+01:00",
+  "validado_en": "2026-11-23T21:21:53+01:00",
   "numero_intervalos": 24,
   "unidad": "€/kWh, término de energía sin impuestos",
-  "precio_medio_eur_kwh": 0.24722,
-  "precio_medio_dia_anterior_eur_kwh": 0.14789,
-  "variacion_porcentual_vs_anterior": 67.16,
-  "precio_medio_7_dias_eur_kwh": 0.17801,
-  "variacion_porcentual_vs_7_dias": 38.88,
+  "precio_medio_eur_kwh": 0.24282,
+  "precio_medio_dia_anterior_eur_kwh": 0.24722,
+  "variacion_porcentual_vs_anterior": -1.78,
+  "precio_medio_7_dias_eur_kwh": 0.1835,
+  "variacion_porcentual_vs_7_dias": 32.32,
   "minimo": {
-    "desde": "14:00",
-    "hasta": "15:00",
-    "precio_eur_kwh": 0.15377
+    "desde": "23:00",
+    "hasta": "00:00",
+    "precio_eur_kwh": 0.19001
   },
   "maximo": {
-    "desde": "18:00",
-    "hasta": "19:00",
-    "precio_eur_kwh": 0.42575
+    "desde": "20:00",
+    "hasta": "21:00",
+    "precio_eur_kwh": 0.32346
   },
   "mejores_tramos_2h_sin_solapamiento": [
     {
-      "desde": "14:00",
-      "hasta": "16:00",
-      "precio_medio_eur_kwh": 0.16346
-    },
-    {
       "desde": "03:00",
       "hasta": "05:00",
-      "precio_medio_eur_kwh": 0.17541
+      "precio_medio_eur_kwh": 0.19061
     },
     {
       "desde": "01:00",
       "hasta": "03:00",
-      "precio_medio_eur_kwh": 0.17583
+      "precio_medio_eur_kwh": 0.1962
+    },
+    {
+      "desde": "22:00",
+      "hasta": "00:00",
+      "precio_medio_eur_kwh": 0.20148
     }
   ],
   "precios_horarios": [
     {
       "desde": "00:00",
       "hasta": "01:00",
-      "precio_eur_kwh": 0.17724
+      "precio_eur_kwh": 0.1965
     },
     {
       "desde": "01:00",
       "hasta": "02:00",
-      "precio_eur_kwh": 0.17585
+      "precio_eur_kwh": 0.19868
     },
     {
       "desde": "02:00",
       "hasta": "03:00",
-      "precio_eur_kwh": 0.1758
+      "precio_eur_kwh": 0.19372
     },
     {
       "desde": "03:00",
       "hasta": "04:00",
-      "precio_eur_kwh": 0.17536
+      "precio_eur_kwh": 0.19105
     },
     {
       "desde": "04:00",
       "hasta": "05:00",
-      "precio_eur_kwh": 0.17546
+      "precio_eur_kwh": 0.19017
     },
     {
       "desde": "05:00",
       "hasta": "06:00",
-      "precio_eur_kwh": 0.17935
+      "precio_eur_kwh": 0.19463
     },
     {
       "desde": "06:00",
       "hasta": "07:00",
-      "precio_eur_kwh": 0.20565
+      "precio_eur_kwh": 0.22082
     },
     {
       "desde": "07:00",
       "hasta": "08:00",
-      "precio_eur_kwh": 0.29344
+      "precio_eur_kwh": 0.23951
     },
     {
       "desde": "08:00",
       "hasta": "09:00",
-      "precio_eur_kwh": 0.32205
+      "precio_eur_kwh": 0.26151
     },
     {
       "desde": "09:00",
       "hasta": "10:00",
-      "precio_eur_kwh": 0.20937
+      "precio_eur_kwh": 0.24343
     },
     {
       "desde": "10:00",
       "hasta": "11:00",
-      "precio_eur_kwh": 0.23297
+      "precio_eur_kwh": 0.30297
     },
     {
       "desde": "11:00",
       "hasta": "12:00",
-      "precio_eur_kwh": 0.20824
+      "precio_eur_kwh": 0.28506
     },
     {
       "desde": "12:00",
       "hasta": "13:00",
-      "precio_eur_kwh": 0.20734
+      "precio_eur_kwh": 0.27623
     },
     {
       "desde": "13:00",
       "hasta": "14:00",
-      "precio_eur_kwh": 0.21515
+      "precio_eur_kwh": 0.27579
     },
     {
       "desde": "14:00",
       "hasta": "15:00",
-      "precio_eur_kwh": 0.15377
+      "precio_eur_kwh": 0.20481
     },
     {
       "desde": "15:00",
       "hasta": "16:00",
-      "precio_eur_kwh": 0.17314
+      "precio_eur_kwh": 0.21024
     },
     {
       "desde": "16:00",
       "hasta": "17:00",
-      "precio_eur_kwh": 0.2197
+      "precio_eur_kwh": 0.21583
     },
     {
       "desde": "17:00",
       "hasta": "18:00",
-      "precio_eur_kwh": 0.28306
+      "precio_eur_kwh": 0.2482
     },
     {
       "desde": "18:00",
       "hasta": "19:00",
-      "precio_eur_kwh": 0.42575
+      "precio_eur_kwh": 0.31964
     },
     {
       "desde": "19:00",
       "hasta": "20:00",
-      "precio_eur_kwh": 0.41778
+      "precio_eur_kwh": 0.3227
     },
     {
       "desde": "20:00",
       "hasta": "21:00",
-      "precio_eur_kwh": 0.40519
+      "precio_eur_kwh": 0.32346
     },
     {
       "desde": "21:00",
       "hasta": "22:00",
-      "precio_eur_kwh": 0.37715
+      "precio_eur_kwh": 0.30973
     },
     {
       "desde": "22:00",
       "hasta": "23:00",
-      "precio_eur_kwh": 0.27864
+      "precio_eur_kwh": 0.21294
     },
     {
       "desde": "23:00",
       "hasta": "00:00",
-      "precio_eur_kwh": 0.2458
+      "precio_eur_kwh": 0.19001
     }
   ]
 }
