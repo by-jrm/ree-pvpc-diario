@@ -50,14 +50,56 @@ jobs:
           PVPC_RUN_CREATED_AT: ${{ steps.ejecucion.outputs.creada }}
         run: python3 scripts/pvpc_manana.py
 
-      - name: Publicar JSON validado
+      - name: Comprobar si falta publicar la infografía
+        id: infografia
+        run: |
+          fecha=$(python3 - <<'PY'
+          import json
+          from datetime import date
+          from pathlib import Path
+
+          report = json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
+          if report["verificacion"] != "official_verified":
+              raise ValueError("El JSON carece de la validación oficial")
+          print(date.fromisoformat(report["fecha"]).isoformat())
+          PY
+          )
+          png="data/infografias/precio_electricidad_pvpc_${fecha}.png"
+          if git diff --quiet HEAD -- data/latest.json && test -f "$png"; then
+            echo "El JSON y su infografía ya están publicados"
+          else
+            echo "ruta=$png" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generar la infografía del JSON validado
+        if: steps.infografia.outputs.ruta != ''
+        env:
+          PNG: ${{ steps.infografia.outputs.ruta }}
+        run: |
+          fonts=/usr/share/fonts/truetype/dejavu
+          if ! test -f "$fonts/DejaVuSans.ttf" || ! test -f "$fonts/DejaVuSans-Bold.ttf"; then
+            sudo apt-get update
+            sudo apt-get install -y fonts-dejavu-core
+          fi
+          python3 -m venv "$RUNNER_TEMP/pvpc"
+          python="$RUNNER_TEMP/pvpc/bin/python"
+          "$python" -m pip install --disable-pip-version-check Pillow==13.0.0
+          temporary=$(mktemp "$RUNNER_TEMP/pvpc-XXXXXX.png")
+          "$python" scripts/pvpc_infografia.py --input data/latest.json --fonts "$fonts" --output "$temporary"
+          mkdir -p "$(dirname "$PNG")"
+          mv -f -- "$temporary" "$PNG"
+
+      - name: Publicar el JSON validado y su infografía
+        if: steps.infografia.outputs.ruta != ''
+        env:
+          PNG: ${{ steps.infografia.outputs.ruta }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/latest.json
+          git add -- data/latest.json "$PNG"
           if git diff --cached --quiet; then
             echo "Sin cambios que publicar"
           else
-            git commit -m "Actualizar PVPC oficial diario"
+            git commit -m "Publicar PVPC oficial e infografía diaria"
             git push origin "HEAD:$GITHUB_REF"
           fi
