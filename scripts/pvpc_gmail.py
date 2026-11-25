@@ -118,8 +118,10 @@ def reserve(commit, remote_ref):
     git("push", f"--force-with-lease={remote_ref}:", "origin", f"{remote_ref}:{remote_ref}")
 
 
-def deliver(start):
+def deliver(start, only=None):
     day, commit = published_report()
+    if only is not None and day != only:
+        raise DeliveryError("La fecha publicada no coincide con la autorizada para la prueba.")
     if day < start:
         print(f"{day}: anterior a la fecha de activación.")
         return
@@ -155,7 +157,8 @@ def deliver(start):
 
 def main():
     try:
-        deliver(official_date(os.environ["GMAIL_START_DATE"]))
+        only = os.environ.get("GMAIL_ONLY_DATE")
+        deliver(official_date(os.environ["GMAIL_START_DATE"]), official_date(only) if only else None)
     except DeliveryError as error:
         print(error, file=sys.stderr)
         return 1
