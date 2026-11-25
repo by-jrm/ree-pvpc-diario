@@ -15,7 +15,7 @@ on:
       timezone: Europe/Madrid
 
 env:
-  GMAIL_SEND_ENABLED: 'false' # Activar solo tras autorizar la primera prueba real.
+  GMAIL_SEND_ENABLED: 'true'
 
 permissions:
   contents: read
@@ -108,9 +108,9 @@ jobs:
           fi
 
       - name: Enviar por Gmail la infografía publicada
-        if: github.ref == 'refs/heads/main' && env.GMAIL_SEND_ENABLED == 'true' && vars.GMAIL_START_DATE != ''
+        if: github.ref == 'refs/heads/main' && env.GMAIL_SEND_ENABLED == 'true'
         env:
-          GMAIL_START_DATE: ${{ vars.GMAIL_START_DATE }}
+          GMAIL_START_DATE: '2026-11-27'
           GMAIL_CLIENT_ID: ${{ secrets.GMAIL_CLIENT_ID }}
           GMAIL_CLIENT_SECRET: ${{ secrets.GMAIL_CLIENT_SECRET }}
           GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
